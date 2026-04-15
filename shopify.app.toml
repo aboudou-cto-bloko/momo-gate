@@ -2,7 +2,7 @@
 
 client_id = "599a86c67f2faee4410595ceb1a5762b"
 name = "MomoGate"
-application_url = "https://momo-gate.vercel.app"
+application_url = "https://momo-gate-one.vercel.app"
 embedded = true
 
 [build]
@@ -29,7 +29,7 @@ scopes = "write_products,read_orders,write_orders,read_customers"
 
 [auth]
 redirect_urls = [
-  "https://momo-gate.vercel.app/auth/callback",
-  "https://momo-gate.vercel.app/auth/shopify/callback",
-  "https://momo-gate.vercel.app/api/auth"
+  "https://momo-gate-one.vercel.app/auth/callback",
+  "https://momo-gate-one.vercel.app/auth/shopify/callback",
+  "https://momo-gate-one.vercel.app/api/auth"
 ]

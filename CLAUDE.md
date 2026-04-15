@@ -250,7 +250,7 @@ push main               →  CI: typecheck + lint
 SHOPIFY_API_KEY=599a86c67f2faee4410595ceb1a5762b
 SHOPIFY_API_SECRET=          # .env.local uniquement
 SCOPES=write_products,read_orders,write_orders,read_customers
-SHOPIFY_APP_URL=https://momo-gate.vercel.app
+SHOPIFY_APP_URL=https://momo-gate-one.vercel.app
 SHOPIFY_API_VERSION=2025-10
 
 # CONVEX

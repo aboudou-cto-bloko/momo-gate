@@ -39,6 +39,8 @@ export const create = internalMutation({
     customerPhone: v.optional(v.string()),
     checkoutUrl: v.optional(v.string()),
     metadata: v.optional(v.any()),
+    commission: v.optional(v.number()),
+    commissionRate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("payments", args);
@@ -90,6 +92,35 @@ export const getByOrderId = query({
       .query("payments")
       .withIndex("by_shopify_order", (q) => q.eq("shopifyOrderId", shopifyOrderId))
       .unique();
+  },
+});
+
+function startOfCurrentMonth(): number {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+}
+
+export const countByShopThisMonth = query({
+  args: { shop: v.string() },
+  handler: async (ctx, { shop }) => {
+    const cutoff = startOfCurrentMonth();
+    const all = await ctx.db
+      .query("payments")
+      .withIndex("by_shop", (q) => q.eq("shop", shop))
+      .collect();
+    return all.filter((p) => p._creationTime >= cutoff).length;
+  },
+});
+
+export const countByShopThisMonthInternal = internalQuery({
+  args: { shop: v.string() },
+  handler: async (ctx, { shop }) => {
+    const cutoff = startOfCurrentMonth();
+    const all = await ctx.db
+      .query("payments")
+      .withIndex("by_shop", (q) => q.eq("shop", shop))
+      .collect();
+    return all.filter((p) => p._creationTime >= cutoff).length;
   },
 });
 

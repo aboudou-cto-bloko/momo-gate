@@ -30,19 +30,48 @@ export const fulfillOrder = internalAction({
       return;
     }
 
-    // Appel Admin API Shopify pour ajouter une note de commande
     const shopifyDomain = payment.shop;
     const orderId = payment.shopifyOrderId.replace("gid://shopify/Order/", "");
     const apiVersion = process.env.SHOPIFY_API_VERSION ?? "2025-10";
+    const headers = {
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": offlineSession.accessToken,
+    };
 
-    const url = `https://${shopifyDomain}/admin/api/${apiVersion}/orders/${orderId}.json`;
+    // 1. Créer une transaction "sale" pour marquer la commande comme payée
+    const txUrl = `https://${shopifyDomain}/admin/api/${apiVersion}/orders/${orderId}/transactions.json`;
+    const txResponse = await fetch(txUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        transaction: {
+          kind: "sale",
+          status: "success",
+          amount: payment.amount.toFixed(2),
+          currency: payment.currency,
+          gateway: "momo-gate",
+          source: "external",
+        },
+      }),
+    });
 
-    const response = await fetch(url, {
+    if (!txResponse.ok) {
+      const body = await txResponse.text();
+      // 422 = transaction already exists / order already paid — acceptable, continue
+      if (txResponse.status !== 422) {
+        console.error(`[shopify.fulfillOrder] Transaction API error ${txResponse.status}: ${body}`);
+      } else {
+        console.warn(`[shopify.fulfillOrder] Order ${orderId} already paid, skipping transaction`);
+      }
+    } else {
+      console.log(`[shopify.fulfillOrder] Transaction created for order ${payment.shopifyOrderName}`);
+    }
+
+    // 2. Mettre à jour la note et les tags de la commande
+    const orderUrl = `https://${shopifyDomain}/admin/api/${apiVersion}/orders/${orderId}.json`;
+    const response = await fetch(orderUrl, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": offlineSession.accessToken,
-      },
+      headers,
       body: JSON.stringify({
         order: {
           id: orderId,
@@ -54,10 +83,10 @@ export const fulfillOrder = internalAction({
 
     if (!response.ok) {
       const body = await response.text();
-      console.error(`[shopify.fulfillOrder] Shopify API error ${response.status}: ${body}`);
+      console.error(`[shopify.fulfillOrder] Order update error ${response.status}: ${body}`);
       return;
     }
 
-    console.log(`[shopify.fulfillOrder] Order ${payment.shopifyOrderName} updated for shop ${payment.shop}`);
+    console.log(`[shopify.fulfillOrder] Order ${payment.shopifyOrderName} marked as paid for shop ${payment.shop}`);
   },
 });

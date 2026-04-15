@@ -71,9 +71,11 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "Annulé",
 };
 
-const STATUS_TONE: Record<string, string> = {
+type BadgeTone = "success" | "info" | "critical" | "warning" | "caution" | "neutral" | "auto";
+
+const STATUS_TONE: Record<string, BadgeTone> = {
   success: "success",
-  pending: "attention",
+  pending: "caution",
   initiated: "info",
   failed: "critical",
   cancelled: "warning",
@@ -112,10 +114,10 @@ export default function Dashboard() {
             borderRadius="base"
             background="subdued"
           >
-            <s-stack direction="block" gap="tight">
-              <s-text variant="subdued">Total</s-text>
+            <s-stack direction="block" gap="small">
+              <s-text color="subdued">Total</s-text>
               <s-heading>{stats.total}</s-heading>
-              <s-text variant="subdued">transactions</s-text>
+              <s-text color="subdued">transactions</s-text>
             </s-stack>
           </s-box>
 
@@ -125,8 +127,8 @@ export default function Dashboard() {
             borderRadius="base"
             background="subdued"
           >
-            <s-stack direction="block" gap="tight">
-              <s-text variant="subdued">Réussies</s-text>
+            <s-stack direction="block" gap="small">
+              <s-text color="subdued">Réussies</s-text>
               <s-heading>{stats.successful}</s-heading>
               <s-badge tone="success">Payées</s-badge>
             </s-stack>
@@ -138,10 +140,10 @@ export default function Dashboard() {
             borderRadius="base"
             background="subdued"
           >
-            <s-stack direction="block" gap="tight">
-              <s-text variant="subdued">En attente</s-text>
+            <s-stack direction="block" gap="small">
+              <s-text color="subdued">En attente</s-text>
               <s-heading>{stats.pending}</s-heading>
-              <s-badge tone="attention">À payer</s-badge>
+              <s-badge tone="caution">À payer</s-badge>
             </s-stack>
           </s-box>
 
@@ -151,12 +153,12 @@ export default function Dashboard() {
             borderRadius="base"
             background="subdued"
           >
-            <s-stack direction="block" gap="tight">
-              <s-text variant="subdued">Revenus</s-text>
+            <s-stack direction="block" gap="small">
+              <s-text color="subdued">Revenus</s-text>
               <s-heading>
                 {formatAmount(stats.revenue, stats.currency)}
               </s-heading>
-              <s-text variant="subdued">paiements réussis</s-text>
+              <s-text color="subdued">paiements réussis</s-text>
             </s-stack>
           </s-box>
         </s-stack>
@@ -179,39 +181,40 @@ export default function Dashboard() {
             </s-button>
           </s-stack>
         ) : (
-          <s-stack direction="block" gap="tight">
+          <s-stack direction="block" gap="small">
             {recent.map((p) => (
               <s-box
                 key={p._id}
                 padding="base"
                 borderWidth="base"
                 borderRadius="base"
-                background="default"
+                background="base"
               >
                 <s-stack direction="inline" gap="base">
-                  <s-stack direction="block" gap="extraTight">
+                  <s-stack direction="block" gap="small-100">
                     <s-text>
                       <strong>{p.shopifyOrderName ?? p.monerooId}</strong>
                     </s-text>
-                    <s-text variant="subdued">
+                    <s-text color="subdued">
                       {p.customerName ?? p.customerEmail ?? "—"}
                     </s-text>
                   </s-stack>
 
-                  <s-stack direction="block" gap="extraTight">
+                  <s-stack direction="block" gap="small-100">
                     <s-text>
                       <strong>{formatAmount(p.amount, p.currency)}</strong>
                     </s-text>
-                    <s-text variant="subdued">{formatDate(p._creationTime)}</s-text>
+                    <s-text color="subdued">{formatDate(p._creationTime)}</s-text>
                   </s-stack>
 
-                  <s-badge tone={STATUS_TONE[p.status] ?? "default"}>
+                  <s-badge tone={STATUS_TONE[p.status] ?? "neutral"}>
                     {STATUS_LABEL[p.status] ?? p.status}
                   </s-badge>
 
                   {p.checkoutUrl && p.status === "initiated" && (
                     <s-button
                       variant="tertiary"
+                      aria-label="Copier le lien de paiement"
                       onClick={() => navigator.clipboard.writeText(p.checkoutUrl!)}
                     >
                       Copier lien
@@ -232,7 +235,7 @@ export default function Dashboard() {
 
       {/* ── Aside ── */}
       <s-section slot="aside" heading="Flux de paiement">
-        <s-stack direction="block" gap="tight">
+        <s-stack direction="block" gap="small">
           <s-paragraph>
             <s-badge tone="info">1</s-badge>{" "}
             <s-text>Commande créée sur Shopify</s-text>
@@ -247,7 +250,7 @@ export default function Dashboard() {
           </s-paragraph>
           <s-paragraph>
             <s-badge tone="success">4</s-badge>{" "}
-            <s-text>Commande mise à jour automatiquement</s-text>
+            <s-text>Commande marquée payée automatiquement</s-text>
           </s-paragraph>
         </s-stack>
       </s-section>
@@ -261,9 +264,7 @@ export default function Dashboard() {
             <s-link href="/app/settings">Paramètres de l'app</s-link>
           </s-list-item>
           <s-list-item>
-            <s-link href="https://dashboard.convex.dev" target="_blank">
-              Dashboard Convex
-            </s-link>
+            <s-link href="/app/billing">Gérer mon abonnement</s-link>
           </s-list-item>
         </s-unordered-list>
       </s-section>

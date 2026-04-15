@@ -5,6 +5,32 @@ import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Moneroo, PaymentStatus } from "moneroo";
 
+// Toutes les méthodes de payin disponibles via Moneroo/Paydunya
+const ALL_PAYIN_METHODS = [
+  "mtn_bj",       // MTN MoMo Bénin
+  "moov_bj",      // Moov Money Bénin
+  "moov_ci",      // Moov Money Côte d'Ivoire
+  "moov_bf",      // Moov Burkina Faso
+  "moov_ml",      // Moov Money Mali
+  "moov_tg",      // Moov Money Togo
+  "orange_ci",    // Orange Money Côte d'Ivoire
+  "orange_bf",    // Orange Burkina Faso
+  "orange_ml",    // Orange Money Mali
+  "orange_sn",    // Orange Money Sénégal
+  "wave_ci",      // Wave Côte d'Ivoire
+  "wave_sn",      // Wave Sénégal
+  "togocel",      // Togocel Money
+  "e_money_sn",   // E-Money Sénégal
+  "freemoney_sn", // Free Money Sénégal
+  "wizall_sn",    // Wizall Sénégal
+];
+
+const COMMISSION_RATES: Record<string, number> = {
+  starter: 0.05,
+  pro: 0.025,
+};
+const STARTER_MONTHLY_LIMIT = 100;
+
 function getMonerooClient(): Moneroo {
   const secretKey = process.env.MONEROO_SECRET_KEY;
   const webhookSecret = process.env.MONEROO_WEBHOOK_SECRET;
@@ -34,6 +60,29 @@ export const initializePayment = action({
     methods: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    // 1. Récupère le plan du marchand
+    const merchant = await ctx.runQuery(internal.merchants.getByShop, {
+      shop: args.shop,
+    });
+    const plan = merchant?.plan ?? "starter";
+
+    // 2. Vérifie le quota mensuel pour le plan Starter
+    if (plan === "starter") {
+      const monthlyCount = await ctx.runQuery(
+        internal.payments.countByShopThisMonthInternal,
+        { shop: args.shop },
+      );
+      if (monthlyCount >= STARTER_MONTHLY_LIMIT) {
+        throw new Error(
+          `Quota mensuel atteint (${STARTER_MONTHLY_LIMIT} transactions). Passez au plan Pro pour continuer.`,
+        );
+      }
+    }
+
+    // 3. Calcule la commission
+    const commissionRate = COMMISSION_RATES[plan] ?? COMMISSION_RATES.starter;
+    const commission = Math.round(args.amount * commissionRate);
+
     const moneroo = getMonerooClient();
 
     const response = await moneroo.payments.initialize({
@@ -47,7 +96,8 @@ export const initializePayment = action({
         last_name: args.customer.lastName,
         phone: args.customer.phone,
       },
-      methods: args.methods,
+      // Toutes les méthodes disponibles — ignore les méthodes passées en argument
+      methods: ALL_PAYIN_METHODS,
       metadata: {
         shopifyOrderId: args.shopifyOrderId,
         shopifyOrderName: args.shopifyOrderName,
@@ -69,6 +119,8 @@ export const initializePayment = action({
       customerName: `${args.customer.firstName} ${args.customer.lastName}`.trim(),
       customerPhone: args.customer.phone,
       checkoutUrl,
+      commission,
+      commissionRate,
     });
 
     return { monerooId, checkoutUrl };

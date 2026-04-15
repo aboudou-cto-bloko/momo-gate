@@ -34,15 +34,22 @@ Shopify ne supporte pas nativement les paiements Mobile Money. Les marchands afr
 
 ### Utilisateurs Cibles
 
-- Marchands Shopify en Afrique de l'Ouest (Bénin, Sénégal, Côte d'Ivoire, Ghana, Togo, Cameroun)
+- Marchands Shopify au **Bénin** (phase MVP)
 - Qui vendent en ligne
-- Dont les clients veulent payer par Mobile Money
+- Dont les clients veulent payer par Mobile Money (MTN BJ, Moov BJ)
 
 ### Modèle Économique
 
 - Plans payants via **Shopify Billing API**
 - **momo-gate possède les clés Moneroo** — le marchand n'a pas besoin de compte Moneroo
-- Plans : Starter (5 000 XOF/mois), Pro (15 000 XOF/mois)
+- **Zone géographique** : Bénin uniquement (méthodes : `mtn_bj`, `moov_bj`)
+
+| Plan | Abonnement | Commission | Limite mensuelle |
+|------|-----------|-----------|-----------------|
+| Starter | 5 000 XOF/mois | 5 % par transaction | 100 transactions |
+| Pro | 15 000 XOF/mois | 2,5 % par transaction | Illimitées |
+
+La commission est calculée et stockée à la création du paiement (`commission`, `commissionRate` dans la table `payments`).
 
 ### Métriques de Succès MVP
 
@@ -351,10 +358,13 @@ pnpm lint
 - [ ] Mettre à jour `SHOPIFY_APP_URL` dans `shopify.app.toml` avec l'URL Vercel finale
 
 ### MVP Core
-- [ ] Webhook `orders/create` → init paiement Moneroo (`convex/payments_actions.ts`)
-- [ ] Page settings (dashboard marchand — scopes, statut)
-- [ ] Dashboard transactions temps réel (Convex query réactive)
-- [ ] Webhook Moneroo → update statut + fulfillOrder
+- [x] Webhook `orders/create` → init paiement Moneroo (`convex/payments_actions.ts`)
+- [x] Page settings (plan, commission, quota mensuel Starter)
+- [x] Dashboard transactions (filtres, statuts, copie lien)
+- [x] Webhook Moneroo → update statut + fulfillOrder
+- [x] Commission 5 % (Starter) / 2,5 % (Pro) stockée avec chaque paiement
+- [x] Quota mensuel Starter — blocage à 100 transactions/mois
+- [x] Zone Bénin uniquement (`mtn_bj`, `moov_bj`)
 
 ### Checkout Extensions
 - [ ] Extension pre-purchase (infos Mobile Money)

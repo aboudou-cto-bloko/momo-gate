@@ -57,9 +57,11 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "Annulé",
 };
 
-const STATUS_TONE: Record<string, string> = {
+type BadgeTone = "success" | "info" | "critical" | "warning" | "caution" | "neutral" | "auto";
+
+const STATUS_TONE: Record<string, BadgeTone> = {
   success: "success",
-  pending: "attention",
+  pending: "caution",
   initiated: "info",
   failed: "critical",
   cancelled: "warning",
@@ -104,7 +106,7 @@ export default function Transactions() {
     <s-page heading="Transactions">
       {/* ── Filtres ── */}
       <s-section>
-        <s-stack direction="inline" gap="tight">
+        <s-stack direction="inline" gap="small">
           {FILTERS.map((f) => (
             <s-button
               key={f.value}
@@ -134,45 +136,45 @@ export default function Transactions() {
             </s-paragraph>
           </s-stack>
         ) : (
-          <s-stack direction="block" gap="tight">
+          <s-stack direction="block" gap="small">
             {payments.map((p) => (
               <s-box
                 key={p._id}
                 padding="base"
                 borderWidth="base"
                 borderRadius="base"
-                background="default"
+                background="base"
               >
                 <s-stack direction="inline" gap="base">
                   {/* Commande */}
-                  <s-stack direction="block" gap="extraTight">
+                  <s-stack direction="block" gap="small-100">
                     <s-text>
                       <strong>{p.shopifyOrderName ?? "—"}</strong>
                     </s-text>
-                    <s-text variant="subdued" style={{ fontSize: "12px" }}>
-                      {p.monerooId}
+                    <s-text color="subdued">
+                      <span style={{ fontSize: "12px" }}>{p.monerooId}</span>
                     </s-text>
                   </s-stack>
 
                   {/* Client */}
-                  <s-stack direction="block" gap="extraTight">
+                  <s-stack direction="block" gap="small-100">
                     <s-text>{p.customerName ?? "—"}</s-text>
-                    <s-text variant="subdued">{p.customerEmail ?? ""}</s-text>
+                    <s-text color="subdued">{p.customerEmail ?? ""}</s-text>
                     {p.customerPhone && (
-                      <s-text variant="subdued">{p.customerPhone}</s-text>
+                      <s-text color="subdued">{p.customerPhone}</s-text>
                     )}
                   </s-stack>
 
                   {/* Montant */}
-                  <s-stack direction="block" gap="extraTight">
+                  <s-stack direction="block" gap="small-100">
                     <s-text>
                       <strong>{formatAmount(p.amount, p.currency)}</strong>
                     </s-text>
-                    <s-text variant="subdued">{formatDate(p._creationTime)}</s-text>
+                    <s-text color="subdued">{formatDate(p._creationTime)}</s-text>
                   </s-stack>
 
                   {/* Statut */}
-                  <s-badge tone={STATUS_TONE[p.status] ?? "default"}>
+                  <s-badge tone={STATUS_TONE[p.status] ?? "neutral"}>
                     {STATUS_LABEL[p.status] ?? p.status}
                   </s-badge>
 
@@ -181,6 +183,7 @@ export default function Transactions() {
                     (p.status === "initiated" || p.status === "pending") && (
                       <s-button
                         variant="tertiary"
+                        aria-label="Copier le lien de paiement"
                         onClick={() => navigator.clipboard.writeText(p.checkoutUrl!)}
                       >
                         Copier le lien de paiement

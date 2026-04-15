@@ -58,6 +58,8 @@ export default defineSchema({
     checkoutUrl: v.optional(v.string()),      // URL de paiement Moneroo
     metadata: v.optional(v.any()),
     processedAt: v.optional(v.number()),      // timestamp ms quand final
+    commission: v.optional(v.number()),        // montant commission en XOF
+    commissionRate: v.optional(v.number()),    // taux: 0.05 (starter) ou 0.025 (pro)
   })
     .index("by_shop", ["shop"])
     .index("by_moneroo_id", ["monerooId"])

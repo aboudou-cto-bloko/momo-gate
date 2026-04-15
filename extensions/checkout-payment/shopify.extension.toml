@@ -1,0 +1,12 @@
+api_version = "2025-10"
+
+[[extensions]]
+type = "ui_extension"
+name = "Paiement Mobile Money"
+handle = "checkout-payment"
+
+  # Page de confirmation de commande (thank you page)
+  [[extensions.targeting]]
+  module = "./src/index.tsx"
+  target = "purchase.thank-you.block.render"
+  export = "default"

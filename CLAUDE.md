@@ -2,7 +2,7 @@
 
 > **Fichier d'instructions permanentes pour Claude Code**  
 > Dernière mise à jour : 2026-04-15  
-> Version : 0.1.0
+> Version : 0.2.0
 
 ---
 
@@ -26,7 +26,7 @@
 
 ### Description
 
-Application Shopify publique permettant aux marchands africains d'accepter les paiements Mobile Money (MTN, Orange, Wave) via un provider de paiement.
+Application Shopify publique permettant aux marchands africains d'accepter les paiements Mobile Money (MTN, Orange, Wave) via Moneroo.
 
 ### Problème Résolu
 
@@ -41,7 +41,7 @@ Shopify ne supporte pas nativement les paiements Mobile Money. Les marchands afr
 ### Modèle Économique
 
 - Plans payants via **Shopify Billing API**
-- Le marchand utilise ses propres clés API du provider
+- **momo-gate possède les clés Moneroo** — le marchand n'a pas besoin de compte Moneroo
 - Plans : Starter (5 000 XOF/mois), Pro (15 000 XOF/mois)
 
 ### Métriques de Succès MVP
@@ -64,7 +64,8 @@ Shopify ne supporte pas nativement les paiements Mobile Money. Les marchands afr
 | **Backend** | Convex | Temps réel, serverless, webhooks natifs |
 | **UI Shopify** | Polaris Web Components (CDN) | Obligatoire pour apps embarquées |
 | **Auth** | OAuth Shopify | Via `@shopify/shopify-app-react-router` |
-| **Sessions** | Custom Convex Adapter | Remplace Prisma |
+| **Sessions** | Custom Convex Adapter | `app/lib/convex-session-storage.ts` |
+| **Paiements** | Moneroo (`moneroo` npm) | SDK TypeScript officiel, clés centralisées |
 | **Email** | Resend | 3000 emails/mois gratuits |
 | **Deploy** | Vercel + Convex Cloud | Serverless, 0€ au départ |
 
@@ -72,10 +73,10 @@ Shopify ne supporte pas nativement les paiements Mobile Money. Les marchands afr
 
 ```json
 {
-  "@shopify/shopify-app-react-router": "^1.0.0",
+  "@shopify/shopify-app-react-router": "^1.1.0",
   "@shopify/shopify-api": "^11.0.0",
-  "convex": "^1.16.0",
-  "resend": "^4.0.0"
+  "convex": "^1.35.1",
+  "moneroo": "^0.1.1"
 }
 ```
 
@@ -83,8 +84,8 @@ Shopify ne supporte pas nativement les paiements Mobile Money. Les marchands afr
 
 | ❌ Ne pas utiliser | Raison |
 |-------------------|--------|
+| Prisma | **Supprimé** — remplacé par Convex |
 | Convex Auth | OAuth Shopify est multi-tenant, géré par le package officiel |
-| Prisma | Remplacé par Convex |
 | Polaris npm | Utiliser CDN Web Components |
 | Next.js | Pas de template officiel Shopify |
 | Tailwind sur Polaris | Incompatible avec les composants Polaris |
@@ -94,52 +95,41 @@ Shopify ne supporte pas nativement les paiements Mobile Money. Les marchands afr
 ## 3. Structure du Projet
 
 ```
-[nom-app]/
+momo-gate/
 ├── app/                              # React Router App
-│   ├── routes/                       # Routes (file-based routing)
+│   ├── routes/
 │   │   ├── app._index.tsx            # Dashboard principal
 │   │   ├── app.tsx                   # Layout app (avec Polaris)
-│   │   ├── app.settings.tsx          # Config provider paiement
-│   │   ├── app.transactions.tsx      # Liste transactions
-│   │   ├── app.billing.tsx           # Gestion abonnement
+│   │   ├── app.settings.tsx          # Config (à créer)
+│   │   ├── app.transactions.tsx      # Transactions temps réel (à créer)
+│   │   ├── app.billing.tsx           # Abonnement (à créer)
 │   │   ├── auth.$.tsx                # OAuth callback
 │   │   ├── auth.login/               # Login
 │   │   └── webhooks.*.tsx            # Webhooks handlers
-│   │
 │   ├── lib/
 │   │   └── convex-session-storage.ts # Adapter Shopify → Convex
-│   │
-│   ├── shopify.servepnpm convex:devr.ts             # Config Shopify + Convex adapter
-│   └── root.tsx                      # Root layout
+│   ├── shopify.server.ts             # Config Shopify + Convex adapter
+│   └── root.tsx
 │
 ├── convex/                           # Backend Convex
-│   ├── _generated/                   # Auto-généré
+│   ├── _generated/                   # Auto-généré (committé — requis pour Vercel)
 │   ├── schema.ts                     # Tables: sessions, merchants, payments
-│   ├── sessions.ts                   # CRUD sessions Shopify
-│   ├── merchants.ts                  # Config marchands
-│   ├── payments.ts                   # Transactions
-│   └── http.ts                       # HTTP Actions (webhooks entrants)
+│   ├── sessions.ts                   # CRUD sessions (public + internal)
+│   ├── merchants.ts                  # Marchands
+│   ├── payments.ts                   # Queries + mutations (runtime Convex)
+│   ├── payments_actions.ts           # Actions Moneroo API ("use node")
+│   ├── shopify.ts                    # fulfillOrder — Admin API Shopify
+│   ├── webhook_moneroo.ts            # Handler webhook Moneroo ("use node")
+│   └── http.ts                       # HTTP router → /moneroo/webhook
 │
-├── extensions/                       # Checkout UI Extensions
-│   └── payment-status/
-│       ├── src/
-│       │   ├── Checkout.tsx          # Pre-purchase
-│       │   ├── ThankYou.tsx          # Post-purchase
-│       │   └── OrderStatus.tsx       # Order status
-│       └── shopify.extension.toml
-│
-├── scripts/                          # Scripts utilitaires
-│   ├── new-session.sh
-│   └── close-session.sh
-│
-├── sessions/                         # Sessions de travail archivées
-│
-├── .mcp.json                         # Config MCP (inclus dans template)
-├── shopify.app.toml                  # Config app Shopify
-├── vite.config.ts                    # Config Vite
-├── CLAUDE.md                         # Ce fichier
-├── SESSION.md                        # Template session
-└── LICENSE                           # License propriétaire
+├── extensions/                       # Checkout UI Extensions (à créer)
+├── .github/workflows/
+│   ├── ci.yml                        # Typecheck + lint
+│   └── deploy.yml                    # Convex deploy sur main
+├── .env.example
+├── shopify.app.toml
+├── shopify.web.toml
+└── CLAUDE.md
 ```
 
 ---
@@ -148,50 +138,13 @@ Shopify ne supporte pas nativement les paiements Mobile Money. Les marchands afr
 
 ### 4.1. TypeScript
 
-```typescript
-// ✅ Correct
-interface PaymentData {
-  amount: number;
-  currency: 'XOF' | 'XAF' | 'GHS';
-  customerId: string;
-}
-
-// ❌ Incorrect
-const data: any = { ... };
-```
-
-- TypeScript strict activé
-- Pas de `any` — toujours typer explicitement
+- TypeScript strict activé — pas de `any`
 - Interfaces pour les objets, types pour les unions
 
 ### 4.2. React Router / Shopify
 
 ```typescript
-// ✅ Correct — loader pour data fetching
-export async function loader({ request }: LoaderFunctionArgs) {
-  const { admin, session } = await authenticate.admin(request);
-  // Fetch data...
-  return json({ data });
-}
-
-// ✅ Correct — action pour mutations
-export async function action({ request }: ActionFunctionArgs) {
-  const { admin } = await authenticate.admin(request);
-  const formData = await request.formData();
-  // Process...
-  return json({ success: true });
-}
-
-// ✅ Correct — useLoaderData dans le composant
-export default function SettingsPage() {
-  const { data } = useLoaderData();
-  return ...;
-}
-
-// ❌ Incorrect — redirect de react-router
-import { redirect } from "react-router";  // NON!
-
-// ✅ Correct — redirect de authenticate
+// ✅ redirect via authenticate (pas react-router)
 const { redirect } = await authenticate.admin(request);
 return redirect("/app/settings");
 ```
@@ -199,323 +152,151 @@ return redirect("/app/settings");
 ### 4.3. Polaris (UI Embarquée)
 
 ```typescript
-// ✅ Correct — Polaris Web Components (CDN)
-// Les composants sont disponibles globalement via le template
-
-// ❌ Incorrect — Import npm de Polaris
-import { Page, Card } from '@shopify/polaris';  // NON avec React Router template
-
-// ❌ Incorrect — Tailwind sur Polaris
-  // NON!
+// ✅ Web Components CDN — pas d'import npm @shopify/polaris
+// ❌ import { Page } from '@shopify/polaris'  // NON
 ```
 
-**Note** : Le template React Router utilise Polaris via CDN (Web Components), pas via npm.
+### 4.4. Convex — Séparation des Runtimes
 
-### 4.4. Convex
+**CRITIQUE** : `moneroo` utilise `node:crypto` → incompatible avec le runtime Convex par défaut.
+
+| Fichier | Runtime | Contenu autorisé |
+|---------|---------|------------------|
+| `payments.ts`, `sessions.ts`, `merchants.ts` | Convex | queries, mutations uniquement |
+| `payments_actions.ts`, `webhook_moneroo.ts` | Node.js (`"use node"`) | actions qui appellent moneroo |
+| `shopify.ts`, `http.ts` | Convex | actions sans node:*, httpAction |
 
 ```typescript
-// ✅ Mutations = écritures en base
-export const createPayment = mutation({
-  args: { amount: v.number(), shopDomain: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert('payments', { 
-      ...args,
-      createdAt: Date.now(),
-    });
-  },
-});
+// ✅ Fichier "use node" — UNIQUEMENT des actions
+"use node";
+import { Moneroo } from "moneroo";
+export const initializePayment = action({ ... });
 
-// ✅ Queries = lectures (temps réel)
-export const listPayments = query({
-  args: { shopDomain: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db.query('payments')
-      .withIndex('by_shop', q => q.eq('shopDomain', args.shopDomain))
-      .order('desc')
-      .collect();
-  },
-});
-
-// ✅ Actions = appels API externes
-export const initializePayment = action({
-  args: { amount: v.number(), phone: v.string() },
-  handler: async (ctx, args) => {
-    // Appels API externes ici
-    const response = await fetch('https://api.provider.com/payments', {
-      method: 'POST',
-      body: JSON.stringify(args),
-    });
-    return await response.json();
-  },
-});
-
-// ✅ HTTP Actions = webhooks entrants
-export const paymentWebhook = httpAction(async (ctx, request) => {
-  const payload = await request.json();
-  // Vérifier signature, traiter...
-  return new Response('OK', { status: 200 });
-});
-
-// ❌ Incorrect — Appel HTTP dans une mutation
-export const badMutation = mutation({
-  handler: async (ctx) => {
-    await fetch('https://api.example.com/...');  // NON!
-  },
-});
+// ❌ Ne jamais importer moneroo sans "use node"
+// ❌ Ne jamais mettre queries/mutations dans un fichier "use node"
+// ❌ Appels fetch dans des mutations
 ```
 
-### 4.5. Checkout UI Extensions
-
-```typescript
-// ✅ Pour checkout et thank-you
-import { ... } from "@shopify/ui-extensions-react/checkout";
-
-// ✅ Pour order-status (customer account)
-import { ... } from "@shopify/ui-extensions-react/customer-account";
-
-// ❌ Pas de bannières/logos décoratifs
-  // NON!
-
-// ❌ Pas de countdown timers
-Plus que 5:00 pour commander!  // NON!
-```
-
-### 4.6. Sécurité
+### 4.5. Sécurité
 
 | Règle | Implementation |
 |-------|----------------|
-| Clés API | Variables d'environnement uniquement |
-| Clés marchands | Chiffrées AES-256 avant stockage Convex |
-| Webhooks Shopify | Vérification HMAC obligatoire |
-| Webhooks Provider | Vérification signature obligatoire |
-| Sessions | Stockées dans Convex via adapter custom |
+| Clés Moneroo | Variables d'env uniquement — jamais exposées aux marchands |
+| Webhooks Shopify | `authenticate.webhook()` — HMAC auto |
+| Webhooks Moneroo | `constructWebhookEvent()` du SDK — HMAC SHA-256 |
+| Sessions | Convex via adapter custom |
 
 ---
 
 ## 5. Utilisation des Skills
 
-### 5.1. Tableau de Décision
-
-| Je veux... | Skill | Notes |
-|------------|-------|-------|
-| Créer une route/page | `shopify-dev` | Utiliser loader/action |
-| UI Polaris | `shopify-polaris-app-home` | Web Components CDN |
-| Webhook Shopify | `shopify-functions` | Vérifier HMAC |
-| Checkout Extension | `shopify-checkout-ui` | Targets multi-page |
-| Billing Shopify | `shopify-partner` | Shopify Billing API |
-| Mutation Convex | `convex-functions` | Pour écritures |
-| Query Convex | `convex-functions` | Pour lectures temps réel |
-| Action Convex | `convex-functions` | Pour API externes |
-| HTTP Action Convex | `convex-http-actions` | Pour webhooks entrants |
-| Schema Convex | `convex-schema-validator` | Définir tables |
-| Envoyer email | `resend` | Templates transactionnels |
-
-### 5.2. Skills Auto-Chargés
-
-Ces skills sont toujours actifs :
-- `shopify-ai-toolkit`
-- `convex`
-
-### 5.3. Workflow par Fonctionnalité
-
-#### Nouvelle page embarquée
-```
-1. Skills: shopify-dev + shopify-polaris-app-home
-2. Créer app/routes/app.ma-page.tsx
-3. Implémenter loader() pour data
-4. Utiliser Polaris pour UI
-5. Connecter aux queries Convex
-```
-
-#### Webhook Shopify
-```
-1. Skills: shopify-dev + shopify-functions
-2. Créer app/routes/webhooks.orders.create.tsx
-3. Vérifier HMAC avec authenticate.webhook()
-4. Appeler mutation/action Convex
-```
-
-#### Webhook Provider (entrant)
-```
-1. Skills: convex-http-actions
-2. Créer convex/http.ts avec httpAction
-3. Vérifier signature du provider
-4. Mettre à jour payment dans Convex
-5. Mettre à jour commande Shopify via API
-```
+| Je veux... | Skill |
+|------------|-------|
+| Route/page Shopify | `shopify-dev` |
+| UI Polaris | `shopify-polaris-app-home` |
+| Webhook Shopify | `shopify-functions` |
+| Checkout Extension | `shopify-polaris-checkout-extensions` |
+| Billing Shopify | `shopify-partner` |
+| Convex functions | `convex-functions` |
+| HTTP Action Convex | `convex` |
 
 ---
 
 ## 6. Pipeline Git & Releases
 
-### 6.1. Branches
+### Branches
 
 ```
-main                    ← Production
-  │
-  ├── develop           ← Développement (preview)
-  │     │
-  │     ├── feat/xxx    ← Features
-  │     ├── fix/xxx     ← Bug fixes
-  │     └── refactor/xxx
-  │
-  └── release/v1.0.0    ← Préparation release
+main        ← Production (Vercel + Convex prod)
+develop     ← Développement (preview)
+feat/xxx    ← Features (depuis develop)
+fix/xxx     ← Bug fixes
 ```
 
-### 6.2. Commits Conventionnels
+### Commits Conventionnels
 
 ```bash
-feat(scope): description     # Nouvelle fonctionnalité
-fix(scope): description      # Correction de bug
-docs(scope): description     # Documentation
-refactor(scope): description # Refactoring
-test(scope): description     # Tests
-chore(scope): description    # Maintenance
+feat(scope): description
+fix(scope): description
+chore(scope): description
+ci(scope): description
 ```
 
-### 6.3. Workflow Feature
-
-```bash
-# 1. Créer la branche
-git checkout develop
-git pull origin develop
-git checkout -b feat/settings-page
-
-# 2. Développer avec commits conventionnels
-git commit -m "feat(settings): add payment config form"
-git commit -m "fix(settings): handle empty API key"
-
-# 3. Push et PR vers develop
-git push origin feat/settings-page
-```
-
-### 6.4. Workflow Release
-
-```bash
-# 1. Créer release branch
-git checkout develop
-git checkout -b release/v1.0.0
-
-# 2. Bump version + CHANGELOG
-git commit -m "chore: prepare release v1.0.0"
-
-# 3. Merger dans main
-git checkout main
-git merge release/v1.0.0
-git tag v1.0.0
-git push origin main --tags
-
-# 4. Back-merge dans develop
-git checkout develop
-git merge main
-git push origin develop
-```
-
-### 6.5. Semantic Versioning
+### CI/CD
 
 ```
-v1.0.0
-│ │ │
-│ │ └── PATCH: Bug fixes
-│ └──── MINOR: Nouvelles fonctionnalités (rétrocompatibles)
-└────── MAJOR: Breaking changes
+push feat/* ou develop  →  CI: typecheck + lint
+push main               →  CI: typecheck + lint
+                        →  Deploy: npx convex deploy
+                        →  Vercel: build + deploy auto (GitHub integration)
 ```
 
-### 6.6. CI/CD Pipeline
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                         PIPELINE                              │
-├──────────────────────────────────────────────────────────────┤
-│                                                               │
-│  push develop ──► Test ──► Build ──► Deploy Preview           │
-│                    │         │         │                      │
-│              TypeCheck   Vite     Vercel Preview              │
-│              ESLint              Convex Preview                │
-│                                                               │
-│  push main ──► Test ──► Build ──► Deploy Production           │
-│                    │         │         │                      │
-│              TypeCheck   Vite     Vercel Prod                 │
-│              ESLint              Convex Prod                   │
-│                                                               │
-└──────────────────────────────────────────────────────────────┘
-```
+**GitHub Secret requis :** `CONVEX_DEPLOY_KEY` (dashboard.convex.dev → Settings)
 
 ---
 
 ## 7. Environnements
 
-### 7.1. Tableau des Environnements
-
-| Env | Branche | Shopify | Convex | Provider |
-|-----|---------|---------|--------|----------|
+| Env | Branche | Shopify | Convex | Moneroo |
+|-----|---------|---------|--------|---------|
 | **Local** | feat/* | Dev Store | `npx convex dev` | Sandbox |
-| **Preview** | develop | Dev Store | Preview deployment | Sandbox |
+| **Preview** | develop | Dev Store | Preview | Sandbox |
 | **Production** | main | App Store | `npx convex deploy` | Live |
 
-### 7.2. Variables d'Environnement
+### Variables d'Environnement
 
 ```bash
-# === SHOPIFY ===
-SHOPIFY_API_KEY=
-SHOPIFY_API_SECRET=
-SCOPES=read_orders,write_orders,read_customers
-SHOPIFY_APP_URL=
+# SHOPIFY
+SHOPIFY_API_KEY=599a86c67f2faee4410595ceb1a5762b
+SHOPIFY_API_SECRET=          # .env.local uniquement
+SCOPES=write_products,read_orders,write_orders,read_customers
+SHOPIFY_APP_URL=https://momo-gate.vercel.app
+SHOPIFY_API_VERSION=2025-10
 
-# === CONVEX ===
-CONVEX_URL=https://xxx.convex.cloud
+# CONVEX
+CONVEX_URL=https://zany-viper-853.convex.cloud
+VITE_CONVEX_URL=https://zany-viper-853.convex.cloud
+VITE_CONVEX_SITE_URL=https://zany-viper-853.convex.site
 
-# === PAYMENT PROVIDER (Sandbox/Live) ===
-PAYMENT_SECRET_KEY=sk_test_xxx
-
-# === RESEND ===
-RESEND_API_KEY=re_xxx
-
-# === ENCRYPTION ===
-ENCRYPTION_KEY=xxx
+# MONEROO (clés momo-gate — jamais exposées marchands)
+MONEROO_SECRET_KEY=          # .env.local uniquement
+MONEROO_WEBHOOK_SECRET=      # .env.local uniquement
+# Webhook URL : https://zany-viper-853.convex.site/moneroo/webhook
 ```
 
-### 7.3. Commandes par Environnement
+### Commandes
 
 ```bash
-# === LOCAL ===
-npx convex dev          # Terminal 1
-shopify app dev         # Terminal 2
-
-# === PREVIEW ===
-# Automatique via Vercel sur push develop
-
-# === PRODUCTION ===
-shopify app deploy      # Deploy Shopify
-npx convex deploy       # Deploy Convex
+npx convex dev    # Terminal 1
+shopify app dev   # Terminal 2
+pnpm typecheck
+pnpm lint
 ```
 
 ---
 
 ## 8. Conformité App Store
 
-### 8.1. Exigences Payments App (Req. 5.2)
+### Req. 5.2 — Payments App
 
 | Exigence | Status |
 |----------|--------|
 | Utiliser uniquement Payments Apps API | ☐ |
-| Nom = nom légal (pas de marketing) | ☐ |
+| Nom = nom légal | ☐ |
 | Screencasts tous navigateurs | ☐ |
 | Annulation possible par acheteur | ☐ |
-| Mêmes infos que checkout | ☐ |
 | Pas de upsell dans flux paiement | ☐ |
 
-### 8.2. Exigences Checkout App (Req. 5.6)
+### Req. 5.6 — Checkout App
 
 | Exigence | Status |
 |----------|--------|
 | APIs documentées uniquement | ☐ |
 | Pas de countdown timers | ☐ |
-| Pas de bannières/logos décoratifs | ☐ |
-| Temps réponse réseau < 1s | ☐ |
+| Temps réponse < 1s | ☐ |
 | Skeleton components au chargement | ☐ |
 
-### 8.3. Exigences Admin App (Req. 2.2)
+### Req. 2.2 — Admin App
 
 | Exigence | Status |
 |----------|--------|
@@ -523,25 +304,27 @@ npx convex deploy       # Deploy Convex
 | Session tokens (pas cookies) | ☐ |
 | Fonctionne en mode incognito | ☐ |
 
-### 8.4. Anti Dark Patterns
-
-| Règle | Status |
-|-------|--------|
-| Frais optionnels OFF par défaut | ☐ |
-| Frais clairement itemisés | ☐ |
-| Option livraison la moins chère par défaut | ☐ |
-
 ---
 
 ## 9. Historique des Sessions
 
-<!-- Les conclusions des sessions s'ajoutent ici -->
-
 ### Session 2026-04-15 (Setup Initial)
 - ✅ Guide de setup v3 créé (React Router + Convex + Extensions)
 - ✅ Document conformité App Store créé
-- ✅ CLAUDE.md réécrit pour nouveau stack
-- 📝 Prochaine étape : Créer les comptes et initialiser le projet
+- ✅ CLAUDE.md v0.1 rédigé
+
+### Session 2026-04-15 (Intégration Convex + Moneroo)
+- ✅ Convex installé, Prisma **supprimé définitivement**
+- ✅ Schema Convex : `sessions`, `merchants`, `payments`
+- ✅ Adapter `ConvexSessionStorage` (remplace `PrismaSessionStorage`)
+- ✅ SDK `moneroo` intégré — clés centralisées (Option 1, pas de compte marchand requis)
+- ✅ Séparation runtimes : `payments_actions.ts` + `webhook_moneroo.ts` avec `"use node"`
+- ✅ HTTP action webhook → `convex.site/moneroo/webhook`
+- ✅ Action `fulfillOrder` — update commandes Shopify après paiement réussi
+- ✅ Repo GitHub public `aboudou-cto-bloko/momo-gate` + branches `main`/`develop`
+- ✅ CI/CD GitHub Actions (typecheck/lint + Convex deploy sur main)
+- ✅ `shopify.app.toml` + `shopify.web.toml` nettoyés (sans Prisma)
+- 📝 Prochaine étape : Vercel + MVP (webhook orders/create, settings, transactions)
 
 ---
 
@@ -549,33 +332,29 @@ npx convex deploy       # Deploy Convex
 
 | Date | Décision | Justification |
 |------|----------|---------------|
-| 2026-04-15 | React Router v7 (pas Next.js) | Template officiel Shopify |
+| 2026-04-15 | React Router v7 | Template officiel Shopify |
 | 2026-04-15 | Convex (pas Prisma) | Temps réel natif, webhooks faciles |
-| 2026-04-15 | Polaris CDN (pas npm) | Template React Router utilise Web Components |
-| 2026-04-15 | Pas Convex Auth | OAuth Shopify multi-tenant, géré par package officiel |
-| 2026-04-15 | Chiffrement AES-256 | Standard sécurité pour clés marchands |
-| 2026-04-15 | Resend pour emails | 3000/mois gratuits, API simple |
+| 2026-04-15 | Polaris CDN | Template React Router utilise Web Components |
+| 2026-04-15 | Pas Convex Auth | OAuth Shopify multi-tenant géré par package officiel |
+| 2026-04-15 | Moneroo clés centralisées | Onboarding simplifié — pas de compte Moneroo requis |
+| 2026-04-15 | `"use node"` dans fichiers actions séparés | `moneroo` utilise `node:crypto`, incompatible runtime Convex |
+| 2026-04-15 | `convex/_generated/` committé | Nécessaire pour build Vercel sans `npx convex dev` |
 
 ---
 
 ## 11. TODO
 
-### Setup Initial
-- [ ] Créer compte Shopify Partners
-- [ ] Créer Development Store
-- [ ] Créer compte Convex
-- [ ] Créer compte provider paiement (sandbox)
-- [ ] Initialiser projet avec template React Router
-- [ ] Intégrer Convex (remplacer Prisma)
-- [ ] Push vers GitHub
+### Setup restant
+- [ ] Connecter Vercel au repo GitHub
+- [ ] Ajouter variables d'env sur Vercel
+- [ ] Ajouter `CONVEX_DEPLOY_KEY` dans GitHub Secrets
+- [ ] Mettre à jour `SHOPIFY_APP_URL` dans `shopify.app.toml` avec l'URL Vercel finale
 
 ### MVP Core
-- [ ] OAuth Shopify fonctionnel
-- [ ] Page settings (config API key)
-- [ ] Webhook ORDERS_CREATE
-- [ ] Intégration provider paiement
-- [ ] Webhook provider → update order
-- [ ] Dashboard transactions temps réel
+- [ ] Webhook `orders/create` → init paiement Moneroo (`convex/payments_actions.ts`)
+- [ ] Page settings (dashboard marchand — scopes, statut)
+- [ ] Dashboard transactions temps réel (Convex query réactive)
+- [ ] Webhook Moneroo → update statut + fulfillOrder
 
 ### Checkout Extensions
 - [ ] Extension pre-purchase (infos Mobile Money)
@@ -583,47 +362,11 @@ npx convex deploy       # Deploy Convex
 - [ ] Extension order-status (suivi)
 
 ### Billing
-- [ ] Page billing avec plans
+- [ ] Page billing Starter / Pro
 - [ ] Intégration Shopify Billing API
 
-### Soumission
+### Soumission App Store
 - [ ] Screencasts tous navigateurs
 - [ ] Test store + credentials
-- [ ] Instructions de test
 - [ ] App listing complet
-- [ ] Soumission App Store
-
----
-
-## Commandes Rapides
-
-```bash
-# === DEV ===
-npx convex dev          # Terminal 1
-shopify app dev         # Terminal 2
-
-# === SESSION ===
-./scripts/new-session.sh
-./scripts/close-session.sh
-
-# === GIT ===
-git checkout -b feat/xxx
-git commit -m "feat(scope): description"
-
-# === DEPLOY ===
-shopify app deploy
-npx convex deploy
-
-# === EXTENSIONS ===
-shopify app generate extension
-```
-
----
-
-<!-- convex-ai-start -->
-This project uses [Convex](https://convex.dev) as its backend.
-
-When working on Convex code, **always read `convex/_generated/ai/guidelines.md` first** for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
-
-Convex agent skills for common tasks can be installed by running `npx convex ai-files install`.
-<!-- convex-ai-end -->
+- [ ] Soumission

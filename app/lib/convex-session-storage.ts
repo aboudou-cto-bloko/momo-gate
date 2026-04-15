@@ -6,7 +6,7 @@ import { api } from "../../convex/_generated/api";
 /**
  * Adapter Shopify SessionStorage → Convex.
  *
- * Remplace PrismaSessionStorage. Utilise ConvexHttpClient côté serveur
+ * Utilise ConvexHttpClient côté serveur
  * (Node.js / React Router loaders) pour appeler les fonctions internes Convex.
  *
  * Usage dans shopify.server.ts :

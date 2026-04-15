@@ -2,7 +2,7 @@
 
 client_id = "599a86c67f2faee4410595ceb1a5762b"
 name = "MomoGate"
-application_url = "https://example.com"
+application_url = "https://momo-gate.vercel.app"
 embedded = true
 
 [build]
@@ -20,9 +20,16 @@ api_version = "2026-07"
   topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
 
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create" ]
+  uri = "/webhooks/orders/create"
+
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "write_products,read_orders,write_orders,read_customers"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [
+  "https://momo-gate.vercel.app/auth/callback",
+  "https://momo-gate.vercel.app/auth/shopify/callback",
+  "https://momo-gate.vercel.app/api/auth"
+]

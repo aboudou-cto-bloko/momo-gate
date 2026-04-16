@@ -33,6 +33,7 @@ yarn.lock
 .claude/
 .cursor/
 .gemini/
+CLAUDE.md
 
 # Prisma (supprimé mais au cas où)
 /prisma/dev.sqlite

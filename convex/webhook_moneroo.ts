@@ -32,7 +32,18 @@ export const handleMonerooWebhook = internalAction({
       return { status: 401, body: "Invalid signature" };
     }
 
-    // Ignorer les événements non-payment
+    // ── Événements payout ──────────────────────────────────────────────────
+    if (event.event.startsWith("payout.")) {
+      const monerooPayoutId = event.data.id;
+      const status = event.data.status as string;
+      await ctx.runMutation(internal.payouts.updateStatusByPayoutId, {
+        monerooPayoutId,
+        status,
+      });
+      return { status: 200, body: "OK" };
+    }
+
+    // ── Événements payment ─────────────────────────────────────────────────
     if (!event.event.startsWith("payment.")) {
       return { status: 200, body: "OK" };
     }

@@ -47,6 +47,24 @@ export const getByPayment = internalQuery({
   },
 });
 
+export const updateStatusByPayoutId = internalMutation({
+  args: {
+    monerooPayoutId: v.string(),
+    status: v.string(),
+  },
+  handler: async (ctx, { monerooPayoutId, status }) => {
+    const payout = await ctx.db
+      .query("payouts")
+      .filter((q) => q.eq(q.field("monerooPayoutId"), monerooPayoutId))
+      .unique();
+    if (!payout) return;
+    await ctx.db.patch(payout._id, {
+      status,
+      ...(["success", "failed"].includes(status) && { processedAt: Date.now() }),
+    });
+  },
+});
+
 export const listByShop = query({
   args: { shop: v.string() },
   handler: async (ctx, { shop }) => {

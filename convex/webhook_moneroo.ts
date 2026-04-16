@@ -53,7 +53,12 @@ export const handleMonerooWebhook = internalAction({
     });
 
     if (event.event === "payment.success") {
+      // Marquer la commande Shopify comme payée
       await ctx.runAction(internal.shopify.fulfillOrder, { monerooId });
+      // Reverser le montant net au marchand (montant - commission)
+      await ctx.runAction(internal.payout_actions.triggerMerchantPayout, {
+        monerooPaymentId: monerooId,
+      });
     }
 
     return { status: 200, body: "OK" };

@@ -105,6 +105,57 @@ export const install = mutation({
   },
 });
 
+/**
+ * Met à jour le plan depuis la page billing (appelé par le loader après confirmation Shopify).
+ * Public car appelé depuis un loader React Router via ConvexHttpClient.
+ */
+export const setPlan = mutation({
+  args: {
+    shop: v.string(),
+    plan: v.union(v.literal("starter"), v.literal("pro")),
+    billingId: v.string(),
+  },
+  handler: async (ctx, { shop, plan, billingId }) => {
+    const merchant = await ctx.db
+      .query("merchants")
+      .withIndex("by_shop", (q) => q.eq("shop", shop))
+      .unique();
+    if (!merchant) throw new Error(`Merchant not found: ${shop}`);
+    await ctx.db.patch(merchant._id, { plan, billingId });
+    return true;
+  },
+});
+
+/**
+ * Enregistre les infos de payout du marchand (numéro mobile money + méthode).
+ * Public car appelé depuis un action React Router.
+ */
+export const updatePayoutInfo = mutation({
+  args: {
+    shop: v.string(),
+    payoutPhone: v.string(),
+    payoutMethod: v.string(),
+    payoutFirstName: v.string(),
+    payoutLastName: v.string(),
+    payoutEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const merchant = await ctx.db
+      .query("merchants")
+      .withIndex("by_shop", (q) => q.eq("shop", args.shop))
+      .unique();
+    if (!merchant) throw new Error(`Merchant not found: ${args.shop}`);
+    await ctx.db.patch(merchant._id, {
+      payoutPhone: args.payoutPhone,
+      payoutMethod: args.payoutMethod,
+      payoutFirstName: args.payoutFirstName,
+      payoutLastName: args.payoutLastName,
+      payoutEmail: args.payoutEmail,
+    });
+    return true;
+  },
+});
+
 export const uninstall = mutation({
   args: { shop: v.string() },
   handler: async (ctx, { shop }) => {

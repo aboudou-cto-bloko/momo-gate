@@ -36,8 +36,14 @@ export default defineSchema({
     shop: v.string(),
     installedAt: v.number(),
     plan: v.optional(v.union(v.literal("starter"), v.literal("pro"))),
-    billingId: v.optional(v.string()),   // ID subscription Shopify Billing API
+    billingId: v.optional(v.string()),        // ID subscription Shopify Billing API
     isActive: v.boolean(),
+    // Infos payout — numéro mobile money du marchand pour les reversements
+    payoutPhone: v.optional(v.string()),      // ex: "+22997000000"
+    payoutMethod: v.optional(v.string()),     // ex: "mtn_bj"
+    payoutFirstName: v.optional(v.string()),
+    payoutLastName: v.optional(v.string()),
+    payoutEmail: v.optional(v.string()),
   }).index("by_shop", ["shop"]),
 
   /**
@@ -64,4 +70,23 @@ export default defineSchema({
     .index("by_shop", ["shop"])
     .index("by_moneroo_id", ["monerooId"])
     .index("by_shopify_order", ["shopifyOrderId"]),
+
+  /**
+   * Reversements aux marchands.
+   * Créé après chaque paiement réussi — momo-gate débite son compte Moneroo
+   * et envoie le montant net (après commission) au numéro mobile money du marchand.
+   */
+  payouts: defineTable({
+    shop: v.string(),
+    monerooPaymentId: v.string(),           // py_xxx du paiement client
+    monerooPayoutId: v.optional(v.string()), // po_xxx du payout Moneroo
+    amount: v.number(),                      // montant net (paiement - commission)
+    currency: v.string(),
+    status: v.string(),                      // "pending" | "success" | "failed"
+    recipientPhone: v.string(),
+    recipientMethod: v.string(),             // ex: "mtn_bj"
+    processedAt: v.optional(v.number()),
+  })
+    .index("by_shop", ["shop"])
+    .index("by_payment", ["monerooPaymentId"]),
 });

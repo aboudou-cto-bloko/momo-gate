@@ -1,5 +1,6 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import { useLoaderData, useNavigation, useSubmit } from "react-router";
+import { useState } from "react";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ConvexHttpClient } from "convex/browser";
@@ -22,7 +23,37 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     plan: merchant?.plan ?? null,
     installedAt: merchant?.installedAt ?? null,
     monthlyCount,
+    payoutPhone: merchant?.payoutPhone ?? "",
+    payoutMethod: merchant?.payoutMethod ?? "",
+    payoutFirstName: merchant?.payoutFirstName ?? "",
+    payoutLastName: merchant?.payoutLastName ?? "",
+    payoutEmail: merchant?.payoutEmail ?? "",
   };
+};
+
+// ─── Action ───────────────────────────────────────────────────────────────────
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const formData = await request.formData();
+
+  const payoutPhone = formData.get("payoutPhone") as string;
+  const payoutMethod = formData.get("payoutMethod") as string;
+  const payoutFirstName = formData.get("payoutFirstName") as string;
+  const payoutLastName = formData.get("payoutLastName") as string;
+  const payoutEmail = formData.get("payoutEmail") as string;
+
+  const client = new ConvexHttpClient(process.env.CONVEX_URL!);
+  await client.mutation(api.merchants.updatePayoutInfo, {
+    shop: session.shop,
+    payoutPhone,
+    payoutMethod,
+    payoutFirstName,
+    payoutLastName,
+    payoutEmail,
+  });
+
+  return { success: true };
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -157,11 +188,60 @@ const PAYIN_METHODS: PaymentMethod[] = [
   },
 ];
 
+const PAYOUT_METHODS = [
+  { code: "mtn_bj", label: "MTN MoMo — Bénin" },
+  { code: "moov_bj", label: "Moov Money — Bénin" },
+  { code: "mtn_ci", label: "MTN MoMo — Côte d'Ivoire" },
+  { code: "moov_ci", label: "Moov Money — Côte d'Ivoire" },
+  { code: "orange_ci", label: "Orange Money — Côte d'Ivoire" },
+  { code: "wave_ci", label: "Wave — Côte d'Ivoire" },
+  { code: "orange_bf", label: "Orange Money — Burkina Faso" },
+  { code: "moov_bf", label: "Moov — Burkina Faso" },
+  { code: "orange_ml", label: "Orange Money — Mali" },
+  { code: "moov_ml", label: "Moov Money — Mali" },
+  { code: "orange_sn", label: "Orange Money — Sénégal" },
+  { code: "wave_sn", label: "Wave — Sénégal" },
+  { code: "moov_tg", label: "Moov Money — Togo" },
+];
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function Settings() {
-  const { shop, isActive, plan, installedAt, monthlyCount } =
-    useLoaderData<typeof loader>();
+  const {
+    shop,
+    isActive,
+    plan,
+    installedAt,
+    monthlyCount,
+    payoutPhone,
+    payoutMethod,
+    payoutFirstName,
+    payoutLastName,
+    payoutEmail,
+  } = useLoaderData<typeof loader>();
+
+  const submit = useSubmit();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+
+  const [firstName, setFirstName] = useState(payoutFirstName);
+  const [lastName, setLastName] = useState(payoutLastName);
+  const [email, setEmail] = useState(payoutEmail);
+  const [phone, setPhone] = useState(payoutPhone);
+  const [method, setMethod] = useState(payoutMethod);
+
+  function savePayoutInfo() {
+    submit(
+      {
+        payoutFirstName: firstName,
+        payoutLastName: lastName,
+        payoutEmail: email,
+        payoutPhone: phone,
+        payoutMethod: method,
+      },
+      { method: "POST" },
+    );
+  }
 
   return (
     <s-page heading="Paramètres">
@@ -236,6 +316,157 @@ export default function Settings() {
                   2,5 %.
                 </s-text>
               </s-paragraph>
+            </s-stack>
+          )}
+        </s-stack>
+      </s-section>
+
+      {/* ── Informations de reversement ── */}
+      <s-section heading="Informations de Reversement">
+        <s-stack direction="block" gap="base">
+          <s-paragraph>
+            <s-text color="subdued">
+              Après chaque paiement réussi, le montant net (après commission)
+              est automatiquement reversé sur votre numéro Mobile Money.
+            </s-text>
+          </s-paragraph>
+
+          <s-stack direction="inline" gap="base">
+            <div style={{ flex: 1 }}>
+              <s-text>
+                <strong>Prénom</strong>
+              </s-text>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFirstName(e.target.value)
+                }
+                placeholder="Ex : Kouassi"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #C9CCCF",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  marginTop: "4px",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <s-text>
+                <strong>Nom</strong>
+              </s-text>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setLastName(e.target.value)
+                }
+                placeholder="Ex : Koné"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #C9CCCF",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  marginTop: "4px",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          </s-stack>
+
+          <div>
+            <s-text>
+              <strong>Email</strong>
+            </s-text>
+            <input
+              type="email"
+              value={email}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setEmail(e.target.value)
+              }
+              placeholder="Ex : marchand@exemple.com"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #C9CCCF",
+                borderRadius: "6px",
+                fontSize: "14px",
+                marginTop: "4px",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          <div>
+            <s-text>
+              <strong>Numéro Mobile Money</strong>
+            </s-text>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setPhone(e.target.value)
+              }
+              placeholder="Ex : +22961000000"
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #C9CCCF",
+                borderRadius: "6px",
+                fontSize: "14px",
+                marginTop: "4px",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          <div>
+            <s-text>
+              <strong>Méthode de paiement</strong>
+            </s-text>
+            <select
+              value={method}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setMethod(e.target.value)
+              }
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #C9CCCF",
+                borderRadius: "6px",
+                fontSize: "14px",
+                marginTop: "4px",
+                boxSizing: "border-box",
+                background: "#FFFFFF",
+              }}
+            >
+              <option value="">Sélectionner une méthode</option>
+              {PAYOUT_METHODS.map((m) => (
+                <option key={m.code} value={m.code}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <s-button
+            variant="primary"
+            disabled={isSubmitting || !phone || !method || !firstName || !lastName || !email}
+            onClick={savePayoutInfo}
+          >
+            {isSubmitting ? "Enregistrement…" : "Enregistrer"}
+          </s-button>
+
+          {payoutPhone && payoutMethod && (
+            <s-stack direction="inline" gap="small">
+              <s-badge tone="success">Configuré</s-badge>
+              <s-text color="subdued">
+                {payoutPhone} — {PAYOUT_METHODS.find((m) => m.code === payoutMethod)?.label ?? payoutMethod}
+              </s-text>
             </s-stack>
           )}
         </s-stack>

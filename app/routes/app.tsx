@@ -17,6 +17,7 @@ export default function App() {
       <s-app-nav>
         <s-link href="/app">Accueil</s-link>
         <s-link href="/app/transactions">Transactions</s-link>
+        <s-link href="/app/payouts">Reversements</s-link>
         <s-link href="/app/settings">Paramètres</s-link>
       </s-app-nav>
       <Outlet />

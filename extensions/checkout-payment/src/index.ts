@@ -12,8 +12,8 @@ const POLL_INTERVAL_MS = 2000;
 const FETCH_TIMEOUT_MS = 3000;
 
 export default extension("purchase.thank-you.block.render", (root, api) => {
-  const order = api.order;
-  const shop = api.shop;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyApi = api as any;
 
   // ── UI nodes ────────────────────────────────────────────────────────────────
 
@@ -121,8 +121,11 @@ export default extension("purchase.thank-you.block.render", (root, api) => {
 
   // ── Start ────────────────────────────────────────────────────────────────────
 
-  const orderId = order?.current?.id;
-  const shopDomain = shop?.myshopifyDomain?.current;
+  // order est un StatefulRemoteSubscribable dans l'API vanilla
+  const orderId: string | undefined =
+    anyApi.order?.current?.id ?? anyApi.order?.id;
+  const shopDomain: string | undefined =
+    anyApi.shop?.myshopifyDomain?.current ?? anyApi.shop?.myshopifyDomain;
 
   if (orderId && shopDomain) {
     poll(orderId, shopDomain, 0);

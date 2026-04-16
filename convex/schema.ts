@@ -58,9 +58,6 @@ export default defineSchema({
     amount: v.number(),                       // en centimes / unité entière (XOF)
     currency: v.string(),                     // "XOF", "GHS", etc.
     status: v.string(),                       // PaymentStatus: initiated|pending|success|failed|cancelled
-    customerEmail: v.optional(v.string()),
-    customerName: v.optional(v.string()),
-    customerPhone: v.optional(v.string()),
     checkoutUrl: v.optional(v.string()),      // URL de paiement Moneroo
     metadata: v.optional(v.any()),
     processedAt: v.optional(v.number()),      // timestamp ms quand final

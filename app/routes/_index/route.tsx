@@ -97,8 +97,8 @@ const FEATURES = [
   },
   {
     icon: "💳",
-    title: "Sans compte Moneroo",
-    text: "Vous n'avez rien à configurer. MomoGate gère les clés API, les paiements et les reversements pour vous.",
+    title: "Zéro configuration technique",
+    text: "Vous n'avez rien à configurer côté paiement. MomoGate gère les clés API, les encaissements et les reversements pour vous.",
   },
 ];
 
@@ -163,7 +163,7 @@ export default function Landing() {
             </div>
             <div className={s.stat}>
               <span className={s.statValue}>0</span>
-              <span className={s.statLabel}>Compte Moneroo requis</span>
+              <span className={s.statLabel}>Intégration technique requise</span>
             </div>
           </div>
         </section>
@@ -242,9 +242,9 @@ export default function Landing() {
           </p>
           <div className={s.pricingGrid}>
             <div className={s.planCard}>
-              <div className={s.planName}>Starter</div>
+              <div className={s.planName}>Gratuit</div>
               <div>
-                <span className={s.planPrice}>5 000</span>{" "}
+                <span className={s.planPrice}>0</span>{" "}
                 <span className={s.planPriceSub}>XOF/mois</span>
               </div>
               <div className={s.planCommission}>✦ 5 % par transaction</div>
@@ -261,14 +261,14 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
-              <a href="#install" className={s.planBtn}>Démarrer →</a>
+              <a href="#install" className={s.planBtn}>Démarrer gratuitement →</a>
             </div>
 
             <div className={`${s.planCard} ${s.planCardPro}`}>
               <div className={s.planBadge}>Recommandé</div>
               <div className={s.planName}>Pro</div>
               <div>
-                <span className={s.planPrice}>15 000</span>{" "}
+                <span className={s.planPrice}>5 000</span>{" "}
                 <span className={s.planPriceSub}>XOF/mois</span>
               </div>
               <div className={s.planCommission}>✦ 2,5 % par transaction</div>
@@ -276,7 +276,7 @@ export default function Landing() {
                 {[
                   "Transactions illimitées",
                   "Commission réduite de moitié",
-                  "Tout le plan Starter inclus",
+                  "Tout le plan Gratuit inclus",
                   "Historique reversements complet",
                   "Support prioritaire",
                 ].map((f) => (
@@ -372,7 +372,7 @@ export default function Landing() {
             <a href="#" className={s.footerLink}>Conditions</a>
             <a href="#" className={s.footerLink}>Confidentialité</a>
           </div>
-          <div className={s.footerCopy}>Made in Benin · © 2025 MomoGate Inc.</div>
+          <div className={s.footerCopy}>Made in Benin · © 2026 MomoGate Inc.</div>
         </div>
       </footer>
     </>

@@ -19,21 +19,11 @@ const shopify = shopifyApp({
   sessionStorage: new ConvexSessionStorage(process.env.CONVEX_URL!),
   distribution: AppDistribution.AppStore,
   billing: {
-    // Starter : ~5 000 XOF/mois — 100 transactions, commission 5 %
-    Starter: {
-      lineItems: [
-        {
-          amount: 8,
-          currencyCode: "USD",
-          interval: BillingInterval.Every30Days,
-        },
-      ],
-    },
-    // Pro : ~15 000 XOF/mois — illimité, commission 2,5 %
+    // Pro : ~5 000 XOF/mois — illimité, commission 2,5 %
     Pro: {
       lineItems: [
         {
-          amount: 25,
+          amount: 8,
           currencyCode: "USD",
           interval: BillingInterval.Every30Days,
         },

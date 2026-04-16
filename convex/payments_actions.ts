@@ -26,7 +26,7 @@ const ALL_PAYIN_METHODS = [
 ];
 
 const COMMISSION_RATES: Record<string, number> = {
-  starter: 0.05,
+  free: 0.05,
   pro: 0.025,
 };
 const STARTER_MONTHLY_LIMIT = 100;
@@ -64,10 +64,10 @@ export const initializePayment = action({
     const merchant = await ctx.runQuery(internal.merchants.getByShop, {
       shop: args.shop,
     });
-    const plan = merchant?.plan ?? "starter";
+    const plan = merchant?.plan ?? "free";
 
     // 2. Vérifie le quota mensuel pour le plan Starter
-    if (plan === "starter") {
+    if (plan === "free") {
       const monthlyCount = await ctx.runQuery(
         internal.payments.countByShopThisMonthInternal,
         { shop: args.shop },
@@ -80,7 +80,7 @@ export const initializePayment = action({
     }
 
     // 3. Calcule la commission
-    const commissionRate = COMMISSION_RATES[plan] ?? COMMISSION_RATES.starter;
+    const commissionRate = COMMISSION_RATES[plan] ?? COMMISSION_RATES.free;
     const commission = Math.round(args.amount * commissionRate);
 
     const moneroo = getMonerooClient();

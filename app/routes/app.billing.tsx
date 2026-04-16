@@ -9,30 +9,34 @@ import { api } from "../../convex/_generated/api";
 
 const PLANS = [
   {
-    name: "Starter" as const,
-    label: "Starter",
-    price: "8 USD / mois",
-    priceLocal: "≈ 5 000 XOF",
+    name: "Free" as const,
+    label: "Gratuit",
+    price: "0 XOF / mois",
+    priceLocal: "Pour toujours",
     commission: "5 % par transaction",
     limit: "100 transactions / mois",
     features: [
-      "MTN MoMo, Moov, Orange, Wave…",
+      "16 méthodes Mobile Money",
       "Dashboard transactions",
       "Reversement automatique",
+      "Support par email",
     ],
+    free: true,
   },
   {
     name: "Pro" as const,
     label: "Pro",
-    price: "25 USD / mois",
-    priceLocal: "≈ 15 000 XOF",
+    price: "8 USD / mois",
+    priceLocal: "≈ 5 000 XOF",
     commission: "2,5 % par transaction",
     limit: "Transactions illimitées",
     features: [
-      "Tout Starter inclus",
+      "Tout le plan Gratuit inclus",
       "Commission réduite de moitié",
+      "Transactions illimitées",
       "Support prioritaire",
     ],
+    free: false,
   },
 ];
 
@@ -41,27 +45,27 @@ const PLANS = [
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, billing } = await authenticate.admin(request);
 
-  // Vérifier le statut d'abonnement actuel
+  // Vérifier le statut d'abonnement actuel (seul plan payant : Pro)
   const { hasActivePayment, appSubscriptions } = await billing.check({
-    plans: ["Starter", "Pro"],
+    plans: ["Pro"],
     isTest: true,
   });
 
   // Synchroniser le plan dans Convex si une subscription active est détectée
   if (hasActivePayment && appSubscriptions.length > 0) {
     const sub = appSubscriptions[0];
-    const planName = sub.name.toLowerCase() as "starter" | "pro";
     const client = new ConvexHttpClient(process.env.CONVEX_URL!);
     await client.mutation(api.merchants.setPlan, {
       shop: session.shop,
-      plan: planName,
+      plan: "pro",
       billingId: sub.id,
     });
   }
 
+  // Sans subscription active → plan gratuit
   const currentPlan = hasActivePayment && appSubscriptions.length > 0
-    ? appSubscriptions[0].name.toLowerCase()
-    : null;
+    ? "pro"
+    : "free";
 
   return {
     shop: session.shop,
@@ -80,7 +84,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "subscribe") {
     const confirmationUrl = await billing.request({
-      plan: planName as "Starter" | "Pro",
+      plan: planName as "Pro",
       isTest: true,
       returnUrl: `${process.env.SHOPIFY_APP_URL}/app/billing`,
     });
@@ -106,7 +110,7 @@ export default function Billing() {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
 
-  function subscribe(plan: "Starter" | "Pro") {
+  function subscribe(plan: "Pro") {
     submit({ intent: "subscribe", plan }, { method: "POST" });
   }
 
@@ -155,7 +159,19 @@ export default function Billing() {
                     ))}
                   </s-stack>
 
-                  {isActive ? (
+                  {plan.free ? (
+                    isActive ? (
+                      <s-badge tone="success">Plan actuel</s-badge>
+                    ) : (
+                      <s-button
+                        variant="tertiary"
+                        disabled={isSubmitting}
+                        onClick={() => cancel()}
+                      >
+                        Rétrograder vers Gratuit
+                      </s-button>
+                    )
+                  ) : isActive ? (
                     <s-button
                       variant="tertiary"
                       disabled={isSubmitting}
@@ -167,9 +183,9 @@ export default function Billing() {
                     <s-button
                       variant="primary"
                       disabled={isSubmitting}
-                      onClick={() => subscribe(plan.name)}
+                      onClick={() => subscribe("Pro")}
                     >
-                      {currentPlan ? "Changer de plan" : "Choisir ce plan"}
+                      Passer au Pro
                     </s-button>
                   )}
                 </s-stack>

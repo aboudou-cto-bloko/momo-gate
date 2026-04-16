@@ -67,16 +67,16 @@ function formatDate(timestamp: number) {
 }
 
 const PLAN_LABELS: Record<string, string> = {
-  starter: "Starter — 5 000 XOF/mois",
-  pro: "Pro — 15 000 XOF/mois",
+  free: "Gratuit — 0 XOF/mois",
+  pro: "Pro — 5 000 XOF/mois",
 };
 
 const COMMISSION_LABELS: Record<string, string> = {
-  starter: "5 % par transaction",
+  free: "5 % par transaction",
   pro: "2,5 % par transaction",
 };
 
-const STARTER_LIMIT = 100;
+const FREE_LIMIT = 100;
 
 // ─── Payment Methods Data ─────────────────────────────────────────────────────
 
@@ -295,22 +295,22 @@ export default function Settings() {
             </s-stack>
           )}
 
-          {plan === "starter" && (
+          {(plan === "free" || plan === null) && (
             <s-stack direction="block" gap="small">
               <s-stack direction="inline" gap="base">
                 <s-text>Transactions ce mois</s-text>
                 <s-text>
                   <strong>
-                    {monthlyCount} / {STARTER_LIMIT}
+                    {monthlyCount} / {FREE_LIMIT}
                   </strong>
                 </s-text>
-                {monthlyCount >= STARTER_LIMIT * 0.9 && (
+                {monthlyCount >= FREE_LIMIT * 0.9 && (
                   <s-badge tone="warning">Limite presque atteinte</s-badge>
                 )}
               </s-stack>
               <s-paragraph>
                 <s-text color="subdued">
-                  Le plan Starter est limité à {STARTER_LIMIT} transactions par
+                  Le plan Gratuit est limité à {FREE_LIMIT} transactions par
                   mois. <s-link href="/app/billing">Passez au plan Pro</s-link>{" "}
                   pour des transactions illimitées et une commission réduite à
                   2,5 %.

@@ -35,7 +35,7 @@ export default defineSchema({
   merchants: defineTable({
     shop: v.string(),
     installedAt: v.number(),
-    plan: v.optional(v.union(v.literal("starter"), v.literal("pro"))),
+    plan: v.optional(v.union(v.literal("free"), v.literal("pro"))),
     billingId: v.optional(v.string()),        // ID subscription Shopify Billing API
     isActive: v.boolean(),
     // Infos payout — numéro mobile money du marchand pour les reversements

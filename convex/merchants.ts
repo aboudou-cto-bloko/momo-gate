@@ -22,7 +22,7 @@ export const upsert = internalMutation({
   args: {
     shop: v.string(),
     isActive: v.boolean(),
-    plan: v.optional(v.union(v.literal("starter"), v.literal("pro"))),
+    plan: v.optional(v.union(v.literal("free"), v.literal("pro"))),
     billingId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -56,7 +56,7 @@ export const upsert = internalMutation({
 export const updatePlan = internalMutation({
   args: {
     shop: v.string(),
-    plan: v.union(v.literal("starter"), v.literal("pro")),
+    plan: v.union(v.literal("free"), v.literal("pro")),
     billingId: v.string(),
   },
   handler: async (ctx, { shop, plan, billingId }) => {
@@ -112,7 +112,7 @@ export const install = mutation({
 export const setPlan = mutation({
   args: {
     shop: v.string(),
-    plan: v.union(v.literal("starter"), v.literal("pro")),
+    plan: v.union(v.literal("free"), v.literal("pro")),
     billingId: v.string(),
   },
   handler: async (ctx, { shop, plan, billingId }) => {

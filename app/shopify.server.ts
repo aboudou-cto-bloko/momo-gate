@@ -5,6 +5,8 @@ import {
   BillingInterval,
   shopifyApp,
 } from "@shopify/shopify-app-react-router/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../convex/_generated/api";
 import { ConvexSessionStorage } from "./lib/convex-session-storage";
 
 const shopify = shopifyApp({
@@ -36,6 +38,13 @@ const shopify = shopifyApp({
           interval: BillingInterval.Every30Days,
         },
       ],
+    },
+  },
+  hooks: {
+    afterAuth: async ({ session }) => {
+      // Créer ou réactiver le marchand dans Convex à chaque installation / reconnexion OAuth
+      const client = new ConvexHttpClient(process.env.CONVEX_URL!);
+      await client.mutation(api.merchants.install, { shop: session.shop });
     },
   },
   future: {
